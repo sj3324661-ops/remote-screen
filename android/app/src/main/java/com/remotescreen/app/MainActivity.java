@@ -4,13 +4,13 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
+
+    TextView status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,32 +19,40 @@ public class MainActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
-        layout.setPadding(40, 40, 40, 40);
+        layout.setPadding(30, 30, 30, 30);
+        layout.setBackgroundColor(Color.WHITE);
 
         TextView title = new TextView(this);
         title.setText("Remote Screen");
         title.setTextSize(30);
-        title.setTextColor(Color.BLACK);
         title.setGravity(Gravity.CENTER);
+        title.setTextColor(Color.BLACK);
 
-        Button controller = new Button(this);
-        controller.setText("Phone A — Controller");
+        Button phoneA = new Button(this);
+        phoneA.setText("PHONE A CONTROLLER");
 
-        Button screen = new Button(this);
-        screen.setText("Phone B — Screen");
+        Button phoneB = new Button(this);
+        phoneB.setText("PHONE B - SCREEN");
 
-        controller.setOnClickListener(v ->
-            Toast.makeText(this, "Phone A चुना गया", Toast.LENGTH_SHORT).show()
-        );
+        status = new TextView(this);
+        status.setText("ऊपर से एक विकल्प चुनें");
+        status.setTextSize(20);
+        status.setGravity(Gravity.CENTER);
+        status.setTextColor(Color.BLACK);
 
-        screen.setOnClickListener(v ->
-            Toast.makeText(this, "Phone B चुना गया", Toast.LENGTH_SHORT).show()
-        );
+        phoneA.setOnClickListener(v -> {
+            status.setText("PHONE A CONTROLLER चुना गया");
+        });
+
+        phoneB.setOnClickListener(v -> {
+            status.setText("PHONE B - SCREEN चुना गया");
+        });
 
         layout.addView(title);
-        layout.addView(controller);
-        layout.addView(screen);
+        layout.addView(phoneA);
+        layout.addView(phoneB);
+        layout.addView(status);
 
         setContentView(layout);
     }
-                           }
+            }
