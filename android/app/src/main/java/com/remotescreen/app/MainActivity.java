@@ -4,9 +4,11 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -18,7 +20,6 @@ public class MainActivity extends Activity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
         layout.setPadding(40, 40, 40, 40);
-        layout.setBackgroundColor(Color.WHITE);
 
         TextView title = new TextView(this);
         title.setText("Remote Screen");
@@ -32,10 +33,18 @@ public class MainActivity extends Activity {
         Button screen = new Button(this);
         screen.setText("Phone B — Screen");
 
+        controller.setOnClickListener(v ->
+            Toast.makeText(this, "Phone A चुना गया", Toast.LENGTH_SHORT).show()
+        );
+
+        screen.setOnClickListener(v ->
+            Toast.makeText(this, "Phone B चुना गया", Toast.LENGTH_SHORT).show()
+        );
+
         layout.addView(title);
         layout.addView(controller);
         layout.addView(screen);
 
         setContentView(layout);
     }
-    }
+                           }
