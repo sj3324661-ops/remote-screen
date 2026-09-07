@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import org.webrtc.CapturerObserver;
+import org.webrtc.EglBase;
 import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
@@ -15,39 +16,37 @@ public class ScreenVideoCapturer {
 
     public ScreenVideoCapturer(
             Context context,
-            Intent permissionData,
-            CapturerObserver observer) {
+            Intent permissionData) {
+
+        EglBase eglBase = EglBase.create();
 
         surfaceTextureHelper =
                 SurfaceTextureHelper.create(
                         "ScreenCaptureThread",
-                        null
+                        eglBase.getEglBaseContext()
                 );
 
         capturer =
                 new ScreenCapturerAndroid(
                         permissionData,
-                        new MediaProjectionCallback()
+                        new android.media.projection.MediaProjection.Callback() {
+                            @Override
+                            public void onStop() {
+                            }
+                        }
                 );
     }
 
-    public VideoCapturer getCapturer() {
-        return capturer;
-    }
-
-    public SurfaceTextureHelper getSurfaceTextureHelper() {
-        return surfaceTextureHelper;
-    }
-
     public void start(
+            Context context,
+            CapturerObserver observer,
             int width,
             int height,
-            int fps,
-            CapturerObserver observer) {
+            int fps) {
 
         capturer.initialize(
                 surfaceTextureHelper,
-                null,
+                context,
                 observer
         );
 
@@ -68,14 +67,5 @@ public class ScreenVideoCapturer {
 
         capturer.dispose();
         surfaceTextureHelper.dispose();
-    }
-
-    private static class MediaProjectionCallback
-            implements android.media.projection.MediaProjection.Callback {
-
-        @Override
-        public void onStop() {
-            // User ने screen sharing बंद की
-        }
     }
 }
