@@ -42,7 +42,6 @@ public class MainActivity extends Activity {
 
         socket.on("room-created", args ->
                 runOnUiThread(() -> {
-
                     if (args.length > 0) {
                         status.setText(
                                 "Pair Code: " + args[0]
@@ -69,7 +68,6 @@ public class MainActivity extends Activity {
 
         socket.on("room-error", args ->
                 runOnUiThread(() -> {
-
                     if (args.length > 0) {
                         status.setText(
                                 String.valueOf(args[0])
@@ -78,7 +76,6 @@ public class MainActivity extends Activity {
                 })
         );
 
-        // PHONE A
         controllerButton.setOnClickListener(v -> {
 
             title.setText(
@@ -89,20 +86,13 @@ public class MainActivity extends Activity {
                     "Connecting..."
             );
 
-            codeInput.setVisibility(
-                    View.GONE
-            );
-
-            connectButton.setVisibility(
-                    View.GONE
-            );
+            codeInput.setVisibility(View.GONE);
+            connectButton.setVisibility(View.GONE);
 
             SocketManager.connect();
-
             socket.emit("create-room");
         });
 
-        // PHONE B
         screenButton.setOnClickListener(v -> {
 
             title.setText(
@@ -113,18 +103,12 @@ public class MainActivity extends Activity {
                     "6 digit Pair Code डालें"
             );
 
-            codeInput.setVisibility(
-                    View.VISIBLE
-            );
-
-            connectButton.setVisibility(
-                    View.VISIBLE
-            );
+            codeInput.setVisibility(View.VISIBLE);
+            connectButton.setVisibility(View.VISIBLE);
 
             SocketManager.connect();
         });
 
-        // CONNECT PHONE B
         connectButton.setOnClickListener(v -> {
 
             String code =
@@ -133,24 +117,18 @@ public class MainActivity extends Activity {
                             .trim();
 
             if (code.length() != 6) {
-
                 status.setText(
                         "कृपया 6 digit Pair Code डालें"
                 );
-
                 return;
             }
 
             status.setText(
-                    "Connecting..."
+                    "Screen permission माँगी जा रही है..."
             );
 
-            socket.emit(
-                    "join-room",
-                    code
-            );
+            socket.emit("join-room", code);
 
-            // Screen capture permission
             requestScreenPermission();
         });
     }
@@ -164,11 +142,9 @@ public class MainActivity extends Activity {
                         );
 
         if (manager == null) {
-
             status.setText(
                     "Screen Capture उपलब्ध नहीं है"
             );
-
             return;
         }
 
@@ -193,25 +169,43 @@ public class MainActivity extends Activity {
                 data
         );
 
-        if (requestCode ==
-                SCREEN_CAPTURE_REQUEST) {
+        if (requestCode != SCREEN_CAPTURE_REQUEST) {
+            return;
+        }
 
-            if (resultCode == RESULT_OK &&
-                    data != null) {
+        if (resultCode == RESULT_OK && data != null) {
 
-                status.setText(
-                        "Screen permission मिल गई"
-                );
+            Intent serviceIntent =
+                    new Intent(
+                            this,
+                            ScreenCaptureService.class
+                    );
 
-                // अगले step में इसी permission
-                // से actual screen streaming शुरू करेंगे।
+            serviceIntent.putExtra(
+                    ScreenCaptureService.EXTRA_RESULT_CODE,
+                    resultCode
+            );
 
+            serviceIntent.putExtra(
+                    ScreenCaptureService.EXTRA_RESULT_DATA,
+                    data
+            );
+
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                startForegroundService(serviceIntent);
             } else {
-
-                status.setText(
-                        "Screen sharing की permission नहीं मिली"
-                );
+                startService(serviceIntent);
             }
+
+            status.setText(
+                    "Screen sharing permission मिल गई"
+            );
+
+        } else {
+
+            status.setText(
+                    "Screen sharing की permission नहीं मिली"
+            );
         }
     }
 
@@ -221,11 +215,10 @@ public class MainActivity extends Activity {
         super.onDestroy();
 
         if (socket != null) {
-
             socket.off("room-created");
             socket.off("joined-room");
             socket.off("peer-connected");
             socket.off("room-error");
         }
     }
-                }
+            }
