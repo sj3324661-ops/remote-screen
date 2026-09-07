@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Remote Screen"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="35dp" />
+
+    <Button
+        android:id="@+id/controllerButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PHONE A — CONTROLLER"
+        android:textSize="17sp" />
+
+    <Button
+        android:id="@+id/screenButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PHONE B — SCREEN"
+        android:textSize="17sp"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="एक विकल्प चुनें"
+        android:textSize="18sp"
+        android:layout_marginTop="30dp" />
+
+</LinearLayout>
