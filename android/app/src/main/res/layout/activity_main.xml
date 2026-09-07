@@ -1,42 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Remote Screen"
-        android:textSize="30sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="35dp" />
-
-    <Button
-        android:id="@+id/controllerButton"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="PHONE A — CONTROLLER"
-        android:textSize="17sp" />
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
 
-    <Button
-        android:id="@+id/screenButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="PHONE B — SCREEN"
-        android:textSize="17sp"
-        android:layout_marginTop="16dp" />
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Remote Screen"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="30dp" />
 
-    <TextView
-        android:id="@+id/status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="एक विकल्प चुनें"
-        android:textSize="18sp"
-        android:layout_marginTop="30dp" />
+        <Button
+            android:id="@+id/controllerButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PHONE A — CONTROLLER" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/screenButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PHONE B — SCREEN"
+            android:layout_marginTop="15dp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="एक विकल्प चुनें"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginTop="25dp" />
+
+        <EditText
+            android:id="@+id/codeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="6 digit Pair Code"
+            android:inputType="number"
+            android:maxLength="6"
+            android:visibility="gone"
+            android:layout_marginTop="15dp" />
+
+        <Button
+            android:id="@+id/connectButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CONNECT"
+            android:visibility="gone"
+            android:layout_marginTop="10dp" />
+
+    </LinearLayout>
+
+</ScrollView>
