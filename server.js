@@ -22,9 +22,9 @@ app.get("/", (req, res) => {
 
 io.on("connection", (socket) => {
 
-  console.log("User connected:", socket.id);
+  console.log("Connected:", socket.id);
 
-  // Phone A room बनाएगा
+  // Phone A creates room
   socket.on("create-room", () => {
 
     let code;
@@ -49,21 +49,20 @@ io.on("connection", (socket) => {
     console.log("Room created:", code);
   });
 
-
-  // Phone B room join करेगा
+  // Phone B joins room
   socket.on("join-room", (code) => {
 
     code = String(code).trim();
 
-    if (!rooms.has(code)) {
+    const room = rooms.get(code);
+
+    if (!room) {
       socket.emit(
         "room-error",
         "यह Pair Code मौजूद नहीं है।"
       );
       return;
     }
-
-    const room = rooms.get(code);
 
     if (room.guest) {
       socket.emit(
@@ -74,8 +73,6 @@ io.on("connection", (socket) => {
     }
 
     room.guest = socket.id;
-
-    rooms.set(code, room);
 
     socket.join(code);
     socket.roomCode = code;
@@ -88,14 +85,30 @@ io.on("connection", (socket) => {
     console.log("Phone B joined:", code);
   });
 
+  // WebRTC signaling
+  socket.on("signal", (data) => {
 
-  // Disconnect
+    const code = socket.roomCode;
+
+    if (!code) return;
+
+    const room = rooms.get(code);
+
+    if (!room) return;
+
+    const target =
+      socket.id === room.host
+        ? room.guest
+        : room.host;
+
+    if (target) {
+      io.to(target).emit("signal", data);
+    }
+  });
+
   socket.on("disconnect", () => {
 
-    console.log(
-      "User disconnected:",
-      socket.id
-    );
+    console.log("Disconnected:", socket.id);
 
     const code = socket.roomCode;
 
@@ -106,13 +119,9 @@ io.on("connection", (socket) => {
     if (!room) return;
 
     if (room.host === socket.id) {
-
       rooms.delete(code);
-
     } else if (room.guest === socket.id) {
-
       room.guest = null;
-      rooms.set(code, room);
     }
   });
 
@@ -121,7 +130,5 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(
-    `Server running on port ${PORT}`
-  );
+  console.log(`Server running on port ${PORT}`);
 });
