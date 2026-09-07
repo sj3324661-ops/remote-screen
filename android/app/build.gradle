@@ -16,4 +16,6 @@ android {
 }
 
 dependencies {
+    implementation 'io.socket:socket.io-client:2.1.0'
+    implementation 'org.webrtc:google-webrtc:1.0.32006'
 }
