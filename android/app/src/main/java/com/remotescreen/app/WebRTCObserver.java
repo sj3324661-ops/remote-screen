@@ -4,11 +4,10 @@ import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpReceiver;
-import org.webrtc.SessionDescription;
+import org.webrtc.RtpTransceiver;
 import org.webrtc.VideoTrack;
 
-public class WebRTCObserver
-        implements PeerConnection.Observer {
+public class WebRTCObserver implements PeerConnection.Observer {
 
     public interface Listener {
         void onIceCandidate(IceCandidate candidate);
@@ -95,43 +94,8 @@ public class WebRTCObserver
     }
 
     @Override
-    public void onIceCandidatesRemoved(
-            IceCandidate[] candidates) {
-    }
-
-    @Override
-    public void onConnectionChange(
-            PeerConnection.PeerConnectionState state) {
-    }
-
-    @Override
-    public void onStandardizedIceConnectionChange(
-            PeerConnection.IceConnectionState state) {
-    }
-
-    @Override
-    public void onSelectedCandidatePairChanged(
-            PeerConnection.CandidatePairChangeEvent event) {
-    }
-
-    @Override
-    public void onIceCandidateError(
-            org.webrtc.PeerConnection.IceCandidateErrorEvent event) {
-    }
-
-    @Override
-    public void onConnectionChange(
-            PeerConnection.IceConnectionState state) {
-    }
-
-    @Override
     public void onAddTrack(
             RtpReceiver receiver,
             MediaStream[] mediaStreams) {
     }
-
-    @Override
-    public void onRemoveTrack(
-            RtpReceiver receiver) {
-    }
-      }
+}
