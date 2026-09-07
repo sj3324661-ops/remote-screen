@@ -5,15 +5,12 @@ import android.content.Intent;
 
 import org.webrtc.CapturerObserver;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.SurfaceTextureHelper;
-import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 public class WebRTCManager {
 
     private final PeerConnectionFactory factory;
-
     private VideoSource videoSource;
     private VideoTrack videoTrack;
     private ScreenVideoCapturer screenCapturer;
@@ -26,9 +23,8 @@ public class WebRTCManager {
                         .createInitializationOptions()
         );
 
-        factory =
-                PeerConnectionFactory.builder()
-                        .createPeerConnectionFactory();
+        factory = PeerConnectionFactory.builder()
+                .createPeerConnectionFactory();
     }
 
     public PeerConnectionFactory getFactory() {
@@ -46,50 +42,28 @@ public class WebRTCManager {
             int height,
             int fps) {
 
-        videoSource =
-                factory.createVideoSource(false);
+        videoSource = factory.createVideoSource(false);
 
         CapturerObserver observer =
-                new CapturerObserver() {
+                videoSource.getCapturerObserver();
 
-                    @Override
-                    public void onCapturerStarted(
-                            boolean success) {
-                    }
-
-                    @Override
-                    public void onCapturerStopped() {
-                    }
-
-                    @Override
-                    public void onFrameCaptured(
-                            org.webrtc.VideoFrame frame) {
-
-                        videoSource
-                                .getCapturerObserver()
-                                .onFrameCaptured(frame);
-                    }
-                };
-
-        screenCapturer =
-                new ScreenVideoCapturer(
-                        context,
-                        permissionData,
-                        observer
-                );
-
-        screenCapturer.start(
-                width,
-                height,
-                fps,
-                observer
+        screenCapturer = new ScreenVideoCapturer(
+                context,
+                permissionData
         );
 
-        videoTrack =
-                factory.createVideoTrack(
-                        "screen-video",
-                        videoSource
-                );
+        screenCapturer.start(
+                context,
+                observer,
+                width,
+                height,
+                fps
+        );
+
+        videoTrack = factory.createVideoTrack(
+                "screen-video",
+                videoSource
+        );
     }
 
     public void release() {
@@ -111,4 +85,4 @@ public class WebRTCManager {
 
         factory.dispose();
     }
-}
+            }
