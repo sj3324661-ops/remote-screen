@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -15,44 +14,32 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(30, 50, 30, 30);
+        TextView title = findViewById(R.id.title);
+        TextView status = findViewById(R.id.status);
+        Button controllerButton = findViewById(R.id.controllerButton);
+        Button screenButton = findViewById(R.id.screenButton);
 
-        TextView title = new TextView(this);
-        title.setText("Remote Screen");
-        title.setTextSize(28);
-
-        Button phoneA = new Button(this);
-        phoneA.setText("PHONE A CONTROLLER");
-
-        Button phoneB = new Button(this);
-        phoneB.setText("PHONE B - SCREEN");
-
-        layout.addView(title);
-        layout.addView(phoneA);
-        layout.addView(phoneB);
-
-        phoneA.setOnClickListener(v -> {
-            title.setText("Phone A Controller");
+        controllerButton.setOnClickListener(v -> {
+            title.setText("Phone A — Controller");
+            status.setText("Controller mode selected");
         });
 
-        phoneB.setOnClickListener(v -> {
-            title.setText("Screen share permission required");
+        screenButton.setOnClickListener(v -> {
+            title.setText("Phone B — Screen");
+            status.setText("Screen sharing permission required");
 
             MediaProjectionManager manager =
                     (MediaProjectionManager) getSystemService(
-                            MEDIA_PROJECTION_SERVICE
-                    );
+                            MEDIA_PROJECTION_SERVICE);
 
             Intent captureIntent = manager.createScreenCaptureIntent();
+
             startActivityForResult(
                     captureIntent,
                     SCREEN_CAPTURE_REQUEST
             );
         });
-
-        setContentView(layout);
     }
 }
