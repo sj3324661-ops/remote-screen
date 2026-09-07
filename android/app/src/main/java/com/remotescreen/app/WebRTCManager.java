@@ -1,11 +1,11 @@
 package com.remotescreen.app;
 
 import android.content.Context;
+import android.content.Intent;
 
-import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerator;
-import org.webrtc.CameraVideoCapturer;
+import org.webrtc.CapturerObserver;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
@@ -13,19 +13,22 @@ import org.webrtc.VideoTrack;
 public class WebRTCManager {
 
     private final PeerConnectionFactory factory;
-    private VideoCapturer videoCapturer;
+
     private VideoSource videoSource;
     private VideoTrack videoTrack;
+    private ScreenVideoCapturer screenCapturer;
 
     public WebRTCManager(Context context) {
 
         PeerConnectionFactory.initialize(
                 PeerConnectionFactory.InitializationOptions
-                        .builder(context)
+                        .builder(context.getApplicationContext())
                         .createInitializationOptions()
         );
 
-        factory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+        factory =
+                PeerConnectionFactory.builder()
+                        .createPeerConnectionFactory();
     }
 
     public PeerConnectionFactory getFactory() {
@@ -36,50 +39,51 @@ public class WebRTCManager {
         return videoTrack;
     }
 
-    public void createCameraTrack(Context context) {
-
-        CameraEnumerator enumerator =
-                new Camera2Enumerator(context);
-
-        String[] deviceNames = enumerator.getDeviceNames();
-
-        for (String deviceName : deviceNames) {
-
-            if (enumerator.isFrontFacing(deviceName)) {
-
-                videoCapturer =
-                        enumerator.createCapturer(
-                                deviceName,
-                                null
-                        );
-
-                if (videoCapturer != null) {
-                    break;
-                }
-            }
-        }
-
-        if (videoCapturer == null) {
-            for (String deviceName : deviceNames) {
-
-                videoCapturer =
-                        enumerator.createCapturer(
-                                deviceName,
-                                null
-                        );
-
-                if (videoCapturer != null) {
-                    break;
-                }
-            }
-        }
-
-        if (videoCapturer == null) {
-            return;
-        }
+    public void createScreenTrack(
+            Context context,
+            Intent permissionData,
+            int width,
+            int height,
+            int fps) {
 
         videoSource =
                 factory.createVideoSource(false);
+
+        CapturerObserver observer =
+                new CapturerObserver() {
+
+                    @Override
+                    public void onCapturerStarted(
+                            boolean success) {
+                    }
+
+                    @Override
+                    public void onCapturerStopped() {
+                    }
+
+                    @Override
+                    public void onFrameCaptured(
+                            org.webrtc.VideoFrame frame) {
+
+                        videoSource
+                                .getCapturerObserver()
+                                .onFrameCaptured(frame);
+                    }
+                };
+
+        screenCapturer =
+                new ScreenVideoCapturer(
+                        context,
+                        permissionData,
+                        observer
+                );
+
+        screenCapturer.start(
+                width,
+                height,
+                fps,
+                observer
+        );
 
         videoTrack =
                 factory.createVideoTrack(
@@ -90,23 +94,21 @@ public class WebRTCManager {
 
     public void release() {
 
-        if (videoCapturer != null) {
-            try {
-                videoCapturer.stopCapture();
-            } catch (Exception ignored) {
-            }
-
-            videoCapturer.dispose();
-        }
-
-        if (videoSource != null) {
-            videoSource.dispose();
+        if (screenCapturer != null) {
+            screenCapturer.stop();
+            screenCapturer = null;
         }
 
         if (videoTrack != null) {
             videoTrack.dispose();
+            videoTrack = null;
+        }
+
+        if (videoSource != null) {
+            videoSource.dispose();
+            videoSource = null;
         }
 
         factory.dispose();
     }
-                          }
+}
