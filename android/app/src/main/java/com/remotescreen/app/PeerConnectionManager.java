@@ -1,9 +1,11 @@
 package com.remotescreen.app;
 
+import org.webrtc.IceCandidate;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.RtpSender;
 import org.webrtc.SessionDescription;
-import org.webrtc.IceCandidate;
+import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,19 +47,104 @@ public class PeerConnectionManager {
         return peerConnection;
     }
 
-    public void addIceCandidate(IceCandidate candidate) {
+    public void addVideoTrack(VideoTrack videoTrack) {
 
-        if (peerConnection != null) {
-            peerConnection.addIceCandidate(candidate);
+        if (peerConnection == null ||
+                videoTrack == null) {
+            return;
+        }
+
+        List<String> streamIds =
+                new ArrayList<>();
+
+        streamIds.add("remote-screen-stream");
+
+        peerConnection.addTrack(
+                videoTrack,
+                streamIds
+        );
+    }
+
+    public void addIceCandidate(
+            IceCandidate candidate) {
+
+        if (peerConnection != null &&
+                candidate != null) {
+
+            peerConnection.addIceCandidate(
+                    candidate
+            );
         }
     }
 
     public void setRemoteDescription(
             SessionDescription description) {
 
-        if (peerConnection != null) {
+        if (peerConnection != null &&
+                description != null) {
+
             peerConnection.setRemoteDescription(
                     new SimpleSdpObserver(),
+                    description
+            );
+        }
+    }
+
+    public void createOffer(
+            PeerConnection.SdpObserver observer) {
+
+        if (peerConnection == null) {
+            return;
+        }
+
+        MediaConstraints constraints =
+                new MediaConstraints();
+
+        constraints.mandatory.add(
+                new MediaConstraints.KeyValuePair(
+                        "OfferToReceiveVideo",
+                        "true"
+                )
+        );
+
+        peerConnection.createOffer(
+                observer,
+                constraints
+        );
+    }
+
+    public void createAnswer(
+            PeerConnection.SdpObserver observer) {
+
+        if (peerConnection == null) {
+            return;
+        }
+
+        MediaConstraints constraints =
+                new MediaConstraints();
+
+        constraints.mandatory.add(
+                new MediaConstraints.KeyValuePair(
+                        "OfferToReceiveVideo",
+                        "true"
+                )
+        );
+
+        peerConnection.createAnswer(
+                observer,
+                constraints
+        );
+    }
+
+    public void setLocalDescription(
+            SessionDescription description,
+            PeerConnection.SdpObserver observer) {
+
+        if (peerConnection != null &&
+                description != null) {
+
+            peerConnection.setLocalDescription(
+                    observer,
                     description
             );
         }
@@ -84,11 +171,13 @@ public class PeerConnectionManager {
         }
 
         @Override
-        public void onCreateFailure(String error) {
+        public void onCreateFailure(
+                String error) {
         }
 
         @Override
-        public void onSetFailure(String error) {
+        public void onSetFailure(
+                String error) {
         }
     }
-  }
+            }
