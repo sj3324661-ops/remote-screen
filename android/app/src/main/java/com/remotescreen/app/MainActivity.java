@@ -7,11 +7,14 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.PeerConnection;
 import org.webrtc.SessionDescription;
+import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
 
 import io.socket.client.Socket;
@@ -24,6 +27,8 @@ public class MainActivity extends Activity {
     private TextView status;
     private EditText codeInput;
     private Button connectButton;
+    private LinearLayout controlPanel;
+    private SurfaceViewRenderer remoteVideoView;
 
     private Socket socket;
 
@@ -31,17 +36,33 @@ public class MainActivity extends Activity {
     private PeerConnectionManager peerConnectionManager;
     private WebRTCSignaling signaling;
 
+    private EglBase eglBase;
+
     private boolean isScreenPhone = false;
+    private boolean isPaired = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
 
         title = findViewById(R.id.title);
         status = findViewById(R.id.status);
         codeInput = findViewById(R.id.codeInput);
         connectButton = findViewById(R.id.connectButton);
+        controlPanel = findViewById(R.id.controlPanel);
+        remoteVideoView = findViewById(R.id.remoteVideoView);
+
+        eglBase = EglBase.create();
+
+        remoteVideoView.init(
+                eglBase.getEglBaseContext(),
+                null
+        );
+
+        remoteVideoView.setEnableHardwareScaler(true);
+        remoteVideoView.setMirror(false);
 
         Button controllerButton =
                 findViewById(R.id.controllerButton);
@@ -63,14 +84,16 @@ public class MainActivity extends Activity {
                             public void onOffer(
                                     SessionDescription offer) {
 
-                                if (peerConnectionManager != null) {
-                                    peerConnectionManager
-                                            .setRemoteDescription(
-                                                    offer
-                                            );
-
-                                    createAnswer();
+                                if (peerConnectionManager == null) {
+                                    createPeerConnection();
                                 }
+
+                                peerConnectionManager
+                                        .setRemoteDescription(
+                                                offer
+                                        );
+
+                                createAnswer();
                             }
 
                             @Override
@@ -78,6 +101,7 @@ public class MainActivity extends Activity {
                                     SessionDescription answer) {
 
                                 if (peerConnectionManager != null) {
+
                                     peerConnectionManager
                                             .setRemoteDescription(
                                                     answer
@@ -90,6 +114,7 @@ public class MainActivity extends Activity {
                                     IceCandidate candidate) {
 
                                 if (peerConnectionManager != null) {
+
                                     peerConnectionManager
                                             .addIceCandidate(
                                                     candidate
@@ -115,24 +140,30 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
 
                     if (args.length > 0) {
+
                         status.setText(
                                 "Pair Code: "
-                                        + args[0]
+                                        + String.valueOf(args[0])
                         );
                     }
                 })
         );
 
         socket.on("joined-room", args ->
-                runOnUiThread(() ->
-                        status.setText(
-                                "Phone B connected"
-                        )
-                )
+                runOnUiThread(() -> {
+
+                    isPaired = true;
+
+                    status.setText(
+                            "Phone B connected"
+                    );
+                })
         );
 
         socket.on("peer-connected", args ->
                 runOnUiThread(() -> {
+
+                    isPaired = true;
 
                     status.setText(
                             "दूसरा Phone connected"
@@ -148,6 +179,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
 
                     if (args.length > 0) {
+
                         status.setText(
                                 String.valueOf(args[0])
                         );
@@ -164,7 +196,7 @@ public class MainActivity extends Activity {
             );
 
             status.setText(
-                    "Connecting..."
+                    "Pair Code बनाया जा रहा है..."
             );
 
             codeInput.setVisibility(
@@ -173,6 +205,10 @@ public class MainActivity extends Activity {
 
             connectButton.setVisibility(
                     View.GONE
+            );
+
+            remoteVideoView.setVisibility(
+                    View.VISIBLE
             );
 
             SocketManager.connect();
@@ -200,6 +236,10 @@ public class MainActivity extends Activity {
                     View.VISIBLE
             );
 
+            remoteVideoView.setVisibility(
+                    View.GONE
+            );
+
             SocketManager.connect();
         });
 
@@ -220,7 +260,7 @@ public class MainActivity extends Activity {
             }
 
             status.setText(
-                    "Screen permission माँगी जा रही है..."
+                    "Phone B connect हो रहा है..."
             );
 
             socket.emit(
@@ -233,6 +273,10 @@ public class MainActivity extends Activity {
     }
 
     private void createPeerConnection() {
+
+        if (peerConnectionManager != null) {
+            return;
+        }
 
         peerConnectionManager =
                 new PeerConnectionManager(
@@ -256,11 +300,26 @@ public class MainActivity extends Activity {
                             public void onVideoTrack(
                                     VideoTrack videoTrack) {
 
-                                runOnUiThread(() ->
-                                        status.setText(
-                                                "Screen video received"
-                                        )
-                                );
+                                runOnUiThread(() -> {
+
+                                    remoteVideoView
+                                            .setVisibility(
+                                                    View.VISIBLE
+                                            );
+
+                                    controlPanel
+                                            .setVisibility(
+                                                    View.GONE
+                                            );
+
+                                    status.setText(
+                                            "LIVE SCREEN CONNECTED"
+                                    );
+
+                                    videoTrack.addSink(
+                                            remoteVideoView
+                                    );
+                                });
                             }
                         }
                 );
@@ -362,37 +421,8 @@ public class MainActivity extends Activity {
         if (resultCode == RESULT_OK &&
                 data != null) {
 
-            Intent serviceIntent =
-                    new Intent(
-                            this,
-                            ScreenCaptureService.class
-                    );
-
-            serviceIntent.putExtra(
-                    ScreenCaptureService.EXTRA_RESULT_CODE,
-                    resultCode
-            );
-
-            serviceIntent.putExtra(
-                    ScreenCaptureService.EXTRA_RESULT_DATA,
-                    data
-            );
-
-            if (android.os.Build.VERSION.SDK_INT >= 26) {
-
-                startForegroundService(
-                        serviceIntent
-                );
-
-            } else {
-
-                startService(
-                        serviceIntent
-                );
-            }
-
             status.setText(
-                    "Screen permission मिल गई"
+                    "Screen sharing शुरू हो रही है..."
             );
 
             startScreenWebRTC(data);
@@ -502,16 +532,29 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
 
+        if (remoteVideoView != null) {
+
+            remoteVideoView.release();
+        }
+
         if (signaling != null) {
+
             signaling.destroy();
         }
 
         if (peerConnectionManager != null) {
+
             peerConnectionManager.close();
         }
 
         if (webRTCManager != null) {
+
             webRTCManager.release();
+        }
+
+        if (eglBase != null) {
+
+            eglBase.release();
         }
 
         super.onDestroy();
