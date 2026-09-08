@@ -9,6 +9,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.webrtc.IceCandidate;
+import org.webrtc.PeerConnection;
+import org.webrtc.SessionDescription;
+import org.webrtc.VideoTrack;
+
 import io.socket.client.Socket;
 
 public class MainActivity extends Activity {
@@ -21,6 +26,12 @@ public class MainActivity extends Activity {
     private Button connectButton;
 
     private Socket socket;
+
+    private WebRTCManager webRTCManager;
+    private PeerConnectionManager peerConnectionManager;
+    private WebRTCSignaling signaling;
+
+    private boolean isScreenPhone = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,11 +51,73 @@ public class MainActivity extends Activity {
 
         socket = SocketManager.getSocket();
 
+        webRTCManager =
+                new WebRTCManager(this);
+
+        signaling =
+                new WebRTCSignaling(
+                        socket,
+                        new WebRTCSignaling.Listener() {
+
+                            @Override
+                            public void onOffer(
+                                    SessionDescription offer) {
+
+                                if (peerConnectionManager != null) {
+                                    peerConnectionManager
+                                            .setRemoteDescription(
+                                                    offer
+                                            );
+
+                                    createAnswer();
+                                }
+                            }
+
+                            @Override
+                            public void onAnswer(
+                                    SessionDescription answer) {
+
+                                if (peerConnectionManager != null) {
+                                    peerConnectionManager
+                                            .setRemoteDescription(
+                                                    answer
+                                            );
+                                }
+                            }
+
+                            @Override
+                            public void onIceCandidate(
+                                    IceCandidate candidate) {
+
+                                if (peerConnectionManager != null) {
+                                    peerConnectionManager
+                                            .addIceCandidate(
+                                                    candidate
+                                            );
+                                }
+                            }
+
+                            @Override
+                            public void onError(
+                                    String message) {
+
+                                runOnUiThread(() ->
+                                        status.setText(
+                                                "WebRTC Error: "
+                                                        + message
+                                        )
+                                );
+                            }
+                        }
+                );
+
         socket.on("room-created", args ->
                 runOnUiThread(() -> {
+
                     if (args.length > 0) {
                         status.setText(
-                                "Pair Code: " + args[0]
+                                "Pair Code: "
+                                        + args[0]
                         );
                     }
                 })
@@ -59,15 +132,21 @@ public class MainActivity extends Activity {
         );
 
         socket.on("peer-connected", args ->
-                runOnUiThread(() ->
-                        status.setText(
-                                "दूसरा Phone connected"
-                        )
-                )
+                runOnUiThread(() -> {
+
+                    status.setText(
+                            "दूसरा Phone connected"
+                    );
+
+                    if (!isScreenPhone) {
+                        createPeerConnection();
+                    }
+                })
         );
 
         socket.on("room-error", args ->
                 runOnUiThread(() -> {
+
                     if (args.length > 0) {
                         status.setText(
                                 String.valueOf(args[0])
@@ -78,6 +157,8 @@ public class MainActivity extends Activity {
 
         controllerButton.setOnClickListener(v -> {
 
+            isScreenPhone = false;
+
             title.setText(
                     "PHONE A — CONTROLLER"
             );
@@ -86,14 +167,22 @@ public class MainActivity extends Activity {
                     "Connecting..."
             );
 
-            codeInput.setVisibility(View.GONE);
-            connectButton.setVisibility(View.GONE);
+            codeInput.setVisibility(
+                    View.GONE
+            );
+
+            connectButton.setVisibility(
+                    View.GONE
+            );
 
             SocketManager.connect();
+
             socket.emit("create-room");
         });
 
         screenButton.setOnClickListener(v -> {
+
+            isScreenPhone = true;
 
             title.setText(
                     "PHONE B — SCREEN"
@@ -103,8 +192,13 @@ public class MainActivity extends Activity {
                     "6 digit Pair Code डालें"
             );
 
-            codeInput.setVisibility(View.VISIBLE);
-            connectButton.setVisibility(View.VISIBLE);
+            codeInput.setVisibility(
+                    View.VISIBLE
+            );
+
+            connectButton.setVisibility(
+                    View.VISIBLE
+            );
 
             SocketManager.connect();
         });
@@ -117,9 +211,11 @@ public class MainActivity extends Activity {
                             .trim();
 
             if (code.length() != 6) {
+
                 status.setText(
                         "कृपया 6 digit Pair Code डालें"
                 );
+
                 return;
             }
 
@@ -127,10 +223,97 @@ public class MainActivity extends Activity {
                     "Screen permission माँगी जा रही है..."
             );
 
-            socket.emit("join-room", code);
+            socket.emit(
+                    "join-room",
+                    code
+            );
 
             requestScreenPermission();
         });
+    }
+
+    private void createPeerConnection() {
+
+        peerConnectionManager =
+                new PeerConnectionManager(
+                        webRTCManager.getFactory()
+                );
+
+        WebRTCObserver observer =
+                new WebRTCObserver(
+                        new WebRTCObserver.Listener() {
+
+                            @Override
+                            public void onIceCandidate(
+                                    IceCandidate candidate) {
+
+                                signaling.sendIceCandidate(
+                                        candidate
+                                );
+                            }
+
+                            @Override
+                            public void onVideoTrack(
+                                    VideoTrack videoTrack) {
+
+                                runOnUiThread(() ->
+                                        status.setText(
+                                                "Screen video received"
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        peerConnectionManager
+                .createPeerConnection(
+                        observer
+                );
+    }
+
+    private void createAnswer() {
+
+        if (peerConnectionManager == null) {
+            return;
+        }
+
+        peerConnectionManager.createAnswer(
+                new SimpleSdpObserver() {
+
+                    @Override
+                    public void onCreateSuccess(
+                            SessionDescription answer) {
+
+                        peerConnectionManager
+                                .setLocalDescription(
+                                        answer,
+                                        new SimpleSdpObserver() {
+
+                                            @Override
+                                            public void onSetSuccess() {
+
+                                                signaling
+                                                        .sendAnswer(
+                                                                answer
+                                                        );
+                                            }
+                                        }
+                                );
+                    }
+
+                    @Override
+                    public void onCreateFailure(
+                            String error) {
+
+                        runOnUiThread(() ->
+                                status.setText(
+                                        "Answer Error: "
+                                                + error
+                                )
+                        );
+                    }
+                }
+        );
     }
 
     private void requestScreenPermission() {
@@ -142,9 +325,11 @@ public class MainActivity extends Activity {
                         );
 
         if (manager == null) {
+
             status.setText(
                     "Screen Capture उपलब्ध नहीं है"
             );
+
             return;
         }
 
@@ -169,11 +354,13 @@ public class MainActivity extends Activity {
                 data
         );
 
-        if (requestCode != SCREEN_CAPTURE_REQUEST) {
+        if (requestCode !=
+                SCREEN_CAPTURE_REQUEST) {
             return;
         }
 
-        if (resultCode == RESULT_OK && data != null) {
+        if (resultCode == RESULT_OK &&
+                data != null) {
 
             Intent serviceIntent =
                     new Intent(
@@ -192,14 +379,23 @@ public class MainActivity extends Activity {
             );
 
             if (android.os.Build.VERSION.SDK_INT >= 26) {
-                startForegroundService(serviceIntent);
+
+                startForegroundService(
+                        serviceIntent
+                );
+
             } else {
-                startService(serviceIntent);
+
+                startService(
+                        serviceIntent
+                );
             }
 
             status.setText(
-                    "Screen sharing permission मिल गई"
+                    "Screen permission मिल गई"
             );
+
+            startScreenWebRTC(data);
 
         } else {
 
@@ -209,16 +405,115 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void startScreenWebRTC(
+            Intent permissionData) {
+
+        createPeerConnection();
+
+        webRTCManager.createScreenTrack(
+                this,
+                permissionData,
+                720,
+                1280,
+                15
+        );
+
+        VideoTrack track =
+                webRTCManager.getVideoTrack();
+
+        if (track != null &&
+                peerConnectionManager != null) {
+
+            peerConnectionManager
+                    .addVideoTrack(track);
+
+            createOffer();
+        }
+    }
+
+    private void createOffer() {
+
+        if (peerConnectionManager == null) {
+            return;
+        }
+
+        peerConnectionManager.createOffer(
+                new SimpleSdpObserver() {
+
+                    @Override
+                    public void onCreateSuccess(
+                            SessionDescription offer) {
+
+                        peerConnectionManager
+                                .setLocalDescription(
+                                        offer,
+                                        new SimpleSdpObserver() {
+
+                                            @Override
+                                            public void onSetSuccess() {
+
+                                                signaling
+                                                        .sendOffer(
+                                                                offer
+                                                        );
+                                            }
+                                        }
+                                );
+                    }
+
+                    @Override
+                    public void onCreateFailure(
+                            String error) {
+
+                        runOnUiThread(() ->
+                                status.setText(
+                                        "Offer Error: "
+                                                + error
+                                )
+                        );
+                    }
+                }
+        );
+    }
+
+    private static class SimpleSdpObserver
+            implements PeerConnection.SdpObserver {
+
+        @Override
+        public void onCreateSuccess(
+                SessionDescription description) {
+        }
+
+        @Override
+        public void onSetSuccess() {
+        }
+
+        @Override
+        public void onCreateFailure(
+                String error) {
+        }
+
+        @Override
+        public void onSetFailure(
+                String error) {
+        }
+    }
+
     @Override
     protected void onDestroy() {
 
-        super.onDestroy();
-
-        if (socket != null) {
-            socket.off("room-created");
-            socket.off("joined-room");
-            socket.off("peer-connected");
-            socket.off("room-error");
+        if (signaling != null) {
+            signaling.destroy();
         }
+
+        if (peerConnectionManager != null) {
+            peerConnectionManager.close();
+        }
+
+        if (webRTCManager != null) {
+            webRTCManager.release();
+        }
+
+        super.onDestroy();
     }
-            }
+    }
