@@ -1,9 +1,9 @@
 package com.remotescreen.app;
 
 import org.webrtc.IceCandidate;
+import org.webrtc.MediaConstraints;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.RtpSender;
 import org.webrtc.SessionDescription;
 import org.webrtc.VideoTrack;
 
@@ -15,7 +15,8 @@ public class PeerConnectionManager {
     private final PeerConnectionFactory factory;
     private PeerConnection peerConnection;
 
-    public PeerConnectionManager(PeerConnectionFactory factory) {
+    public PeerConnectionManager(
+            PeerConnectionFactory factory) {
         this.factory = factory;
     }
 
@@ -27,7 +28,9 @@ public class PeerConnectionManager {
 
         iceServers.add(
                 PeerConnection.IceServer
-                        .builder("stun:stun.l.google.com:19302")
+                        .builder(
+                                "stun:stun.l.google.com:19302"
+                        )
                         .createIceServer()
         );
 
@@ -47,7 +50,8 @@ public class PeerConnectionManager {
         return peerConnection;
     }
 
-    public void addVideoTrack(VideoTrack videoTrack) {
+    public void addVideoTrack(
+            VideoTrack videoTrack) {
 
         if (peerConnection == null ||
                 videoTrack == null) {
@@ -57,7 +61,9 @@ public class PeerConnectionManager {
         List<String> streamIds =
                 new ArrayList<>();
 
-        streamIds.add("remote-screen-stream");
+        streamIds.add(
+                "remote-screen-stream"
+        );
 
         peerConnection.addTrack(
                 videoTrack,
